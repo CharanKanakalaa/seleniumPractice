@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium Practice</title>
+
+    <!-- Linking external CSS -->
+    <link rel="stylesheet" href="../styles/homestyles.css">
+</head>
+<script>
+    function goToPage(page){
+        window.location.href = page;
+    }
+</script>
+<body>
+
+    <h1>Selenium Practice</h1>
+
+    <div class="button-container">
+        <button class="btn-box" onclick="goToPage('formsPage.html')">Forms</button>
+        <button class="btn-box" onclick="goToPage('Alerts.html')">Alerts</button>
+        <button class="btn-box" onclick="goToPage('windows.html')">windows & Iframes</button>
+        <button class="btn-box" onclick="goToPage('upload.html')">Uploads & Downloads</button>
+        <button class="btn-box" onclick="goToPage('Products.html')">Add to cart</button>
+    </div>
+
+</body>
+</html>

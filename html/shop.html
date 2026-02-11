@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SimpleShop | Products & Cart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --brand: #3b82f6;
+      --brand-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --danger-dark: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--text); background:var(--bg); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+    /* Header */
+    .header { background:#fff; border-bottom:1px solid var(--border); }
+    .header .container { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { font-weight:800; color:var(--brand-dark); letter-spacing:.2px; }
+    .nav { display:flex; align-items:center; gap:12px; }
+    .nav-btn {
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--brand); color:#fff; border:1px solid var(--brand);
+      padding:8px 12px; border-radius:8px; font-weight:600; cursor:pointer;
+    }
+    .nav-btn:hover { background:var(--brand-dark); border-color:var(--brand-dark); }
+    .icon { width:20px; height:20px; fill:#fff; }
+    .badge {
+      display:inline-block; min-width:18px; padding:1px 6px;
+      background:#fff; color:var(--brand-dark); border:1px solid #c7d2fe;
+      border-radius:999px; font-size:12px; font-weight:700;
+    }
+
+    /* Pages */
+    .page-title { margin:24px 0 16px; font-size:28px; }
+    .hidden { display:none !important; }
+
+    /* Products grid */
+    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+    .card img { width:100%; height:160px; object-fit:cover; background:#eef2ff; }
+    .card-body { padding:12px 14px 16px; display:flex; flex-direction:column; gap:8px; }
+    .card-title { font-weight:700; }
+    .card-desc { color:var(--muted); font-size:14px; }
+    .card-footer { display:flex; align-items:center; justify-content:space-between; }
+    .price { font-weight:700; }
+    .btn {
+      appearance:none; border:1px solid var(--brand); background:var(--brand); color:#fff;
+      padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600;
+    }
+    .btn:hover { background:var(--brand-dark); border-color:var(--brand-dark); }
+
+    /* Cart */
+    .cart-table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .cart-table th, .cart-table td { padding:12px; border-bottom:1px solid var(--border); text-align:left; vertical-align: middle; }
+    .cart-table th { background:#f8fafc; font-weight:700; }
+    .qty-input { width:64px; padding:6px; }
+    .btn-danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+    .btn-danger:hover { background: var(--danger-dark); border-color: var(--danger-dark); }
+    .summary { margin-top:16px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:flex-end; }
+    .total { font-size:18px; font-weight:800; }
+    .empty { background:#fff; border:1px dashed var(--border); border-radius:10px; padding:28px; text-align:center; color:var(--muted); }
+
+    .footer { margin:32px 0 16px; color:var(--muted); text-align:center; font-size:14px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="brand">SimpleShop</div>
+      <div class="nav">
+        <button id="goProducts" class="nav-btn" type="button" title="Products">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <span>Products</span>
+        </button>
+        <button id="goCart" class="nav-btn" type="button" title="Cart">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M7 4h-2l-1 2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h9v-2h-8.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h5.74c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.49a1 1 0 0 0-1-1h-14.31l-.94-2zM7 24a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+          <span>Cart</span>
+          <span id="cartCount" class="badge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- PRODUCTS PAGE -->
+  <main id="productsPage" class="container">
+    <h1 class="page-title">Products</h1>
+    <div id="productGrid" class="grid"></div>
+  </main>
+
+  <!-- CART PAGE -->
+  <main id="cartPage" class="container hidden">
+    <h1 class="page-title">Your Cart</h1>
+    <div id="cartRoot"></div>
+  </main>
+
+  <footer class="footer">© <span id="yr"></span> SimpleShop</footer>
+
+  <script>
+    /*****************
+     * PERSISTENT CART (localStorage)
+     *****************/
+    var Cart = (function () {
+      var STORAGE_KEY = "simpleshop_cart_persist_v2";
+
+      function read() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return { items: [] };           // initially empty
+          var parsed = JSON.parse(raw);
+          if (!parsed || !Array.isArray(parsed.items)) return { items: [] };
+          return parsed;
+        } catch (e) { return { items: [] }; }
+      }
+      function write(cart) { localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }
+
+      return {
+        get: function () { return read(); },
+        set: function (cart) { write(cart); },
+        clear: function () { write({ items: [] }); },
+        count: function () { var c = read(), sum = 0; for (var i=0;i<c.items.length;i++) sum+=c.items[i].qty; return sum; },
+        subtotal: function () { var c = read(), sum = 0; for (var i=0;i<c.items.length;i++) sum+=c.items[i].price*c.items[i].qty; return sum; },
+        add: function (id, title, price) {
+          var c = read(), found = false;
+          for (var i=0;i<c.items.length;i++) {
+            if (c.items[i].id === id) { c.items[i].qty += 1; found = true; break; }
+          }
+          if (!found) c.items.push({ id:id, title:title, price:price, qty:1 });
+          write(c);
+        },
+        updateQty: function (id, qty) {
+          var c = read();
+          for (var i=0;i<c.items.length;i++) if (c.items[i].id===id) { c.items[i].qty = qty<1?1:qty; break; }
+          write(c);
+        },
+        remove: function (id) {
+          var c = read(), next = [];
+          for (var i=0;i<c.items.length;i++) if (c.items[i].id!==id) next.push(c.items[i]);
+          write({ items: next });
+        }
+      };
+    })();
+
+    /*****************
+     * DEMO DATA
+     *****************/
+    var products = [
+      { id: "p-101", title: "Wireless Headphones", price: 199900, image: "https://tse4.mm.bing.net/th/id/OIP.PD1y6mlSYF2nqXJEl-gBgAHaHa?w=167&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3", description: "Comfortable over-ear, 30h battery life." },
+      { id: "p-102", title: "Smart Watch",          price: 349900, image: "data:image/webp;base64,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", description: "Fitness tracking with heart-rate monitor." },
+      { id: "p-103", title: "Mechanical Keyboard",  price: 289900, image: "https://tse4.mm.bing.net/th/id/OIP.2PCir9SzbxWYpVYWOBOSJQHaEK?w=210&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3", description: "Tactile switches, RGB backlight." },
+      { id: "p-104", title: "Bluetooth Speaker",    price: 159900, image: "https://tse3.mm.bing.net/th/id/OIP.sJhOvSGxp1Fv_5VTX_ZYgAHaDt?w=243&h=150&c=6&o=7&dpr=1.5&pid=1.7&rm=3", description: "Portable, water-resistant, deep bass." },
+      { id: "p-105", title: "USB-C Charger 65W",    price: 129900, image: "https://tse4.mm.bing.net/th/id/OIP.w2YCojmhBfkkBCO4kHwrewHaGP?w=228&h=192&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3", description: "Fast-charging for laptops and phones." }
+    ];
+
+    /*****************
+     * HELPERS
+     *****************/
+    function formatINR(paise) { return "₹" + (paise / 100).toFixed(2); }
+
+    function showPage(which) {
+      var productsPage = document.getElementById("productsPage");
+      var cartPage = document.getElementById("cartPage");
+      if (which === "cart") {
+        productsPage.classList.add("hidden");
+        cartPage.classList.remove("hidden");
+        renderCart();
+      } else {
+        cartPage.classList.add("hidden");
+        productsPage.classList.remove("hidden");
+        renderProducts();
+      }
+      updateCartCountBadge();
+    }
+
+    function updateCartCountBadge() {
+      var badge = document.getElementById("cartCount");
+      if (badge) badge.textContent = Cart.count();
+    }
+
+    /*****************
+     * PRODUCTS VIEW (DOM-safe)
+     *****************/
+    function renderProducts() {
+      var grid = document.getElementById("productGrid");
+      grid.innerHTML = "";
+      for (var i=0;i<products.length;i++) {
+        var p = products[i];
+        var article = document.createElement("article"); article.className = "card";
+
+        var img = document.createElement("img");
+        img.src = p.image; img.alt = p.title;
+
+        var body = document.createElement("div"); body.className = "card-body";
+        var t = document.createElement("div"); t.className = "card-title"; t.textContent = p.title;
+        var d = document.createElement("div"); d.className = "card-desc"; d.textContent = p.description;
+
+        var footer = document.createElement("div"); footer.className = "card-footer";
+        var price = document.createElement("div"); price.className = "price"; price.textContent = formatINR(p.price);
+
+        var btn = document.createElement("button");
+        btn.className = "btn"; btn.textContent = "Add to Cart";
+        btn.addEventListener("click", (function(pid){
+          return function(){
+            // find product
+            var prod = null;
+            for (var k=0;k<products.length;k++) if (products[k].id===pid) { prod = products[k]; break; }
+            if (prod) { Cart.add(prod.id, prod.title, prod.price); updateCartCountBadge(); }
+          };
+        })(p.id));
+
+        footer.appendChild(price);
+        footer.appendChild(btn);
+        body.appendChild(t);
+        body.appendChild(d);
+        body.appendChild(footer);
+        article.appendChild(img);
+        article.appendChild(body);
+        grid.appendChild(article);
+      }
+    }
+
+    /*****************
+     * CART VIEW (DOM-safe)
+     *****************/
+    var cartRoot = document.getElementById("cartRoot");
+
+    function renderCart() {
+      var cart = Cart.get();
+      cartRoot.innerHTML = "";
+
+      if (!cart.items.length) {
+        var empty = document.createElement("div");
+        empty.className = "empty";
+        var txt = document.createTextNode("Your cart is empty. ");
+        var browse = document.createElement("button");
+        browse.className = "btn";
+        browse.type = "button";
+        browse.textContent = "Browse products";
+        browse.addEventListener("click", function(){ showPage("products"); });
+        empty.appendChild(txt);
+        empty.appendChild(browse);
+        cartRoot.appendChild(empty);
+        return;
+      }
+
+      var table = document.createElement("table");
+      table.className = "cart-table";
+      var thead = document.createElement("thead");
+      var thr = document.createElement("tr");
+      ["Item","Price","Qty","Line Total","Actions"].forEach(function(h){
+        var th = document.createElement("th"); th.textContent = h; thr.appendChild(th);
+      });
+      thead.appendChild(thr);
+
+      var tbody = document.createElement("tbody");
+
+      for (var i=0;i<cart.items.length;i++) {
+        (function(item){
+          var tr = document.createElement("tr");
+
+          var tdTitle = document.createElement("td"); tdTitle.textContent = item.title;
+          var tdPrice = document.createElement("td"); tdPrice.textContent = formatINR(item.price);
+
+          var tdQty = document.createElement("td");
+          var qty = document.createElement("input");
+          qty.type = "number"; qty.min = "1"; qty.value = item.qty; qty.className = "qty-input";
+          qty.addEventListener("change", function(){
+            var val = parseInt(qty.value, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            Cart.updateQty(item.id, val);
+            renderCart();
+            updateCartCountBadge();
+          });
+          tdQty.appendChild(qty);
+
+          var tdLine = document.createElement("td");
+          tdLine.textContent = formatINR(item.price * item.qty);
+
+          var tdActions = document.createElement("td");
+          var rm = document.createElement("button");
+          rm.className = "btn btn-danger";
+          rm.type = "button";
+          rm.textContent = "Remove from cart";
+          rm.addEventListener("click", function(){
+            Cart.remove(item.id);
+            renderCart();
+            updateCartCountBadge();
+          });
+          tdActions.appendChild(rm);
+
+          tr.appendChild(tdTitle);
+          tr.appendChild(tdPrice);
+          tr.appendChild(tdQty);
+          tr.appendChild(tdLine);
+          tr.appendChild(tdActions);
+
+          tbody.appendChild(tr);
+        })(cart.items[i]);
+      }
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+
+      var summary = document.createElement("div");
+      summary.className = "summary";
+      var subtotal = Cart.subtotal();
+      var shipping = subtotal > 0 ? 199 : 0;
+      var total = subtotal + shipping;
+
+      var s1 = document.createElement("div");
+      s1.innerHTML = 'Subtotal: <strong>' + formatINR(subtotal) + '</strong>';
+      var s2 = document.createElement("div");
+      s2.innerHTML = 'Shipping: <strong>' + formatINR(shipping) + '</strong>';
+      var s3 = document.createElement("div");
+      s3.className = "total";
+      s3.textContent = 'Total: ' + formatINR(total);
+
+      var place = document.createElement("button");
+      place.className = "btn";
+      place.type = "button";
+      place.textContent = "Place Order";
+      place.addEventListener("click", function(){
+        var sub = Cart.subtotal();
+        if (!Cart.get().items.length || sub === 0) { alert("Your cart is empty."); return; }
+        var ship = sub > 0 ? 199 : 0;
+        var amt = (sub + ship) / 100;
+        var orderId = "ORD-" + Math.random().toString(36).slice(2,8).toUpperCase();
+        alert("✅ Order placed!\n\nOrder ID: " + orderId + "\nAmount: ₹" + amt.toFixed(2) + "\n\nThank you!");
+        Cart.clear();
+        renderCart();
+        updateCartCountBadge();
+      });
+
+      summary.appendChild(s1);
+      summary.appendChild(s2);
+      summary.appendChild(s3);
+      summary.appendChild(place);
+
+      cartRoot.appendChild(table);
+      cartRoot.appendChild(summary);
+    }
+
+    /*****************
+     * NAV BUTTONS
+     *****************/
+    document.getElementById("goCart").onclick = function(){ showPage("cart"); };
+    document.getElementById("goProducts").onclick = function(){ showPage("products"); };
+
+    /*****************
+     * INIT
+     *****************/
+    document.getElementById("yr").textContent = new Date().getFullYear();
+    renderProducts();
+    updateCartCountBadge();
+  </script>
+</body>
+</html>

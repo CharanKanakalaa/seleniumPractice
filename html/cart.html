@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SimpleShop | Cart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --brand: #3b82f6;
+      --brand-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: var(--text); background: var(--bg); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .header { background:#fff; border-bottom:1px solid var(--border); }
+    .header .container { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { font-weight:800; color:var(--brand-dark); letter-spacing:.2px; }
+    .icon-link { display:inline-flex; align-items:center; gap:8px; text-decoration:none; color: var(--text); }
+    .icon { width:22px; height:22px; fill: var(--brand-dark); }
+    .page-title { margin:24px 0 16px; font-size:28px; }
+    .cart-table { width:100%; border-collapse: collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .cart-table th, .cart-table td { padding:12px; border-bottom:1px solid var(--border); text-align:left; vertical-align: middle; }
+    .cart-table th { background:#f8fafc; font-weight:700; }
+    .qty-cell { display:flex; align-items:center; gap:6px; }
+    .qty-input { width:64px; padding:6px; }
+    .icon-btn {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:32px; height:32px; border-radius:8px; border:1px solid var(--border);
+      background:#fff; cursor:pointer;
+    }
+    .icon-btn:hover { background:#f0f5ff; border-color: var(--brand); }
+    .icon-btn .icon { width:18px; height:18px; fill: var(--brand-dark); }
+    .trash-btn { border:1px solid var(--danger); }
+    .trash-btn .icon { fill: var(--danger); }
+    .trash-btn:hover { background:#fee2e2; }
+    .summary { margin-top:16px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:flex-end; }
+    .total { font-size:18px; font-weight:800; }
+    .btn {
+      appearance:none; border:1px solid var(--brand); background:var(--brand); color:#fff;
+      padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600;
+    }
+    .btn:hover { background: #1d4ed8; border-color:#1d4ed8; }
+    .empty { background:#fff; border:1px dashed var(--border); border-radius:10px; padding:28px; text-align:center; color:var(--muted); }
+    .footer { margin:32px 0 16px; color:var(--muted); text-align:center; font-size:14px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="brand">SimpleShop</div>
+      <nav>
+        <!-- Back to Products (with icon) -->
+        products.html
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          <span>Back to Products</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1 class="page-title">Your Cart</h1>
+    <div id="cartRoot"></div>
+  </main>
+
+  <footer class="footer">© <span id="yr"></span> SimpleShop</footer>
+
+  <script>
+    // --- Cart storage (localStorage) ---
+    (function(){
+      var STORAGE_KEY = "simpleshop_cart_v1";
+      window.Cart = {
+        get: function () {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return { items: [] };
+            var parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.items)) return { items: [] };
+            return parsed;
+          } catch (e) { return { items: [] }; }
+        },
+        set: function (cart) { localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); },
+        clear: function () { this.set({ items: [] }); },
+        subtotal: function () {
+          var c = this.get(), sum = 0;
+          for (var i = 0; i < c.items.length; i++) sum += (c.items[i].price * c.items[i].qty);
+          return sum;
+        },
+        updateQty: function (id, qty) {
+          var c = this.get();
+          for (var i = 0; i < c.items.length; i++) {
+            if (c.items[i].id === id) { c.items[i].qty = qty < 1 ? 1 : qty; break; }
+          }
+          this.set(c);
+        },
+        increment: function (id) {
+          var c = this.get();
+          for (var i = 0; i < c.items.length; i++) {
+            if (c.items[i].id === id) { c.items[i].qty += 1; break; }
+          }
+          this.set(c);
+        },
+        decrement: function (id) {
+          var c = this.get();
+          for (var i = 0; i < c.items.length; i++) {
+            if (c.items[i].id === id) { c.items[i].qty = Math.max(1, c.items[i].qty - 1); break; }
+          }
+          this.set(c);
+        },
+        remove: function (id) {
+          var c = this.get();
+          var next = [];
+          for (var i = 0; i < c.items.length; i++) if (c.items[i].id !== id) next.push(c.items[i]);
+          this.set({ items: next });
+        }
+      };
+    })();
+
+    function formatINR(paise) { return "₹" + (paise / 100).toFixed(2); }
+
+    var root = document.getElementById("cartRoot");
+
+    function renderCart() {
+      var cart = Cart.get();
+
+      if (!cart.items.length) {
+        root.innerHTML = '<div class="empty">Your cart is empty. <a href="htmlBrowse products</a>.</div>';
+        return;
+      }
+
+      var rows = "";
+      for (var i = 0; i < cart.items.length; i++) {
+        var item = cart.items[i];
+        rows += ''
+          + '<tr>'
+            + '<td>' + item.title + '</td>'
+            + '<td>' + formatINR(item.price) + '</td>'
+            + '<td>'
+              + '<div class="qty-cell">'
+                + '<button class="icon-btn" data-action="dec" datawBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>'
+                + '</button>'
+                + '<input class="qty-input" type="number" min="1" value="' + item.qty + '" data-id="' + item.id + '"/>'
+                + '<button class="icon-btn" <svg class="icon" viewBox="0 0 24 24"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>'
+                + '</button>'
+              + '</div>'
+            + '</td>'
+            + '<td>' + formatINR(item.price * item.qty) + '</td>'
+            + '<td>'
+              + 'remove'
+                + '<svg class="icon" viewBox="0 0 24 24"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1z"/></svg>'
+              + '</button>'
+            + '</td>'
+          + '</tr>';
+      }
+
+      var subtotal = Cart.subtotal();
+      var shipping = subtotal > 0 ? 199 : 0; // demo shipping
+      var total = subtotal + shipping;
+
+      root.innerHTML =
+        '<table class="cart-table">'
+          + '<thead><tr>'
+            + '<th>Item</th><th>Price</th><th>Qty</th><th>Line Total</th><th>Actions</th>'
+          + '</tr></thead>'
+          + '<tbody>' + rows + '</tbody>'
+        + '</table>'
+        + '<div class="summary">'
+          + '<div>Subtotal: <strong>' + formatINR(subtotal) + '</strong></div>'
+          + '<div>Shipping: <strong>' + formatINR(shipping) + '</strong></div>'
+          + '<div class="total">Total: ' + formatINR(total) + '</div>'
+          + '<button class="btn" id="placeOrderBtn">Place Order</button>'
+        + '</div>';
+
+      attachHandlers();
+    }
+
+    function attachHandlers() {
+      // Delegate clicks for dec/inc/remove
+      root.addEventListener("click", function (e) {
+        var t = e.target;
+
+        // If SVG or PATH clicked, bubble up to button
+        if (t.tagName && (t.tagName.toLowerCase() === "svg" || t.tagName.toLowerCase() === "path")) {
+          while (t && !t.getAttribute("data-action")) { t = t.parentNode; }
+        }
+
+        if (!t || !t.getAttribute) return;
+
+        var action = t.getAttribute("data-action");
+        var id = t.getAttribute("data-id");
+        if (!action || !id) return;
+
+        if (action === "dec") Cart.decrement(id);
+        if (action === "inc") Cart.increment(id);
+        if (action === "remove") Cart.remove(id);
+
+        renderCart();
+      });
+
+      // Quantity inputs
+      var qtyInputs = root.querySelectorAll("input.qty-input");
+      for (var i = 0; i < qtyInputs.length; i++) {
+        qtyInputs[i].addEventListener("change", function () {
+          var id = this.getAttribute("data-id");
+          var val = parseInt(this.value, 10);
+          if (isNaN(val) || val < 1) val = 1;
+          Cart.updateQty(id, val);
+          renderCart();
+        });
+      }
+
+      // Place order
+      var btn = document.getElementById("placeOrderBtn");
+      if (btn) btn.addEventListener("click", placeOrder);
+    }
+
+    function placeOrder() {
+      var cart = Cart.get();
+      if (!cart.items.length) { alert("Your cart is empty."); return; }
+      var subtotal = Cart.subtotal();
+      var shipping = subtotal > 0 ? 199 : 0;
+      var total = (subtotal + shipping) / 100;
+      var orderId = "ORD-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+      alert("✅ Order placed!\n\nOrder ID: " + orderId + "\nAmount: ₹" + total.toFixed(2) + "\n\nThank you!");
+      Cart.clear();
+      renderCart();
+    }
+
+    // Fallback: ensure Back link navigates even in odd environments
+    (function(){
+      var link = document.getElementById("backLink");
+      if (!link) return;
+      link.addEventListener("click", function (e) {
+        if (this.getAttribute("href") === "products.html") {
+          setTimeout(function(){ window.location.href = "products.html"; }, 0);
+        }
+      });
+    })();
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+    renderCart();
+  </script>
+</body>
+</html>
