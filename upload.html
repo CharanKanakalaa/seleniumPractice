@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload & Download</title>
+  ,<link rel="stylesheet" href="styles/uploadStyles.css">
+</head>
+<script>
+  function goToIndex(page){
+    window.location.href = page;
+  }
+  </script>
+<body>
+  <main class="card">
+    <h1 onclick="goToIndex('index.html')">selenium Practice</h1>
+    <h1>Upload</h1>
+
+    <div class="row">
+      <!-- Hidden file input, triggered by the styled button -->
+      <input type="file" id="fileInput" accept="*/*" hidden />
+      <button id="uploadBtn" class="btn primary" type="button">Choose File</button>
+      <span id="fileInfo" class="muted">No file selected</span>
+    </div>
+
+    <div id="uploadStatus" class="status" role="status" aria-live="polite"></div>
+
+    <hr />
+
+    <h1>Download</h1>
+    <div class="row">
+      <button id="downloadBtn" class="btn" type="button" disabled>Download Uploaded File</button>
+    </div>
+    <div id="downloadStatus" class="status" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    (function () {
+      const fileInput = document.getElementById('fileInput');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const fileInfo = document.getElementById('fileInfo');
+      const uploadStatus = document.getElementById('uploadStatus');
+      const downloadStatus = document.getElementById('downloadStatus');
+
+      let selectedFile = null;
+      let objectUrl = null;
+
+      // Utility: format bytes to human readable
+      function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      // Trigger file picker
+      uploadBtn.addEventListener('click', () => fileInput.click());
+
+      // Handle file selection ("upload" in this local scenario)
+      fileInput.addEventListener('change', () => {
+        uploadStatus.textContent = '';
+        downloadStatus.textContent = '';
+
+        // Revoke any previous object URL
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          fileInfo.textContent = 'No file selected';
+          downloadBtn.disabled = true;
+          selectedFile = null;
+          return;
+        }
+
+        selectedFile = file;
+        fileInfo.textContent = `Selected: ${file.name} (${formatBytes(file.size)})`;
+
+        // Create a temporary object URL for the file
+        objectUrl = URL.createObjectURL(file);
+
+        // Enable download button and show success message
+        downloadBtn.disabled = false;
+        uploadStatus.className = 'status success';
+        uploadStatus.textContent = '✅ File uploaded successfully.';
+      });
+
+      // Handle download of the same uploaded file
+      downloadBtn.addEventListener('click', () => {
+        downloadStatus.textContent = '';
+
+        if (!selectedFile || !objectUrl) {
+          downloadBtn.disabled = true;
+          downloadStatus.className = 'status error';
+          downloadStatus.textContent = '⚠️ No file available to download.';
+          return;
+        }
+
+        // Create a temporary anchor to download the file
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = selectedFile.name; // preserves original filename
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        downloadStatus.className = 'status success';
+        downloadStatus.textContent = '✅ File downloaded successfully.';
+      });
+
+      // Optional: Clean up when leaving the page
+      window.addEventListener('beforeunload', () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      });
+    })();
+  </script>
+</body>
+</html>

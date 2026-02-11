@@ -1,0 +1,96 @@
+/* ===== Base / Reset ===== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans",
+               "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  color: #0f172a;             /* slate-900 */
+  background: #f8fafc;        /* slate-50  */
+}
+
+/* ===== Heading (top + centered + bold) ===== */
+.page-header {
+  padding: 1.25rem 1rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;     /* subtle divider */
+  text-align: center;                    /* center heading */
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;                      /* bold */
+}
+
+/* ===== Main container (centers children) ===== */
+.container {
+  max-width: 1400px;                     /* allow a large iframe */
+  margin: 1.25rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;                   /* center tabs + iframe */
+}
+
+/* ===== Tabs (ample primary blue, centered) ===== */
+.tabs {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 0.75rem 0 1.25rem;
+}
+.tab {
+  appearance: none;
+  border: 2px solid #1d4ed8;            /* primary blue (indigo-700-ish) */
+  background: #2563eb;                  /* primary blue (indigo-600)   */
+  color: #ffffff;
+  padding: 1rem 1.75rem;                /* ample size */
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+  transition: transform .06s ease, filter .15s ease;
+}
+.tab:hover { filter: brightness(0.96); }
+.tab:active { transform: translateY(1px); }
+.tab.is-active {
+  background: #1e40af;                  /* darker blue when active */
+  border-color: #1e40af;
+}
+
+/* ===== Iframe wrapper (big centered rectangle) ===== */
+.frame-wrap {
+  /* Centered big rectangle */
+  width: min(96vw, 1280px);             /* cap overall width */
+  height: min(85vh, 900px);             /* tall, but keep within viewport */
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;                      /* keep rounded corners */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: stretch;                  /* let iframe fill the rectangle */
+  justify-content: center;
+}
+
+/* ===== Bigger iframe (fills the wrapper) =====
+   - 100% width and height ensures a perfect fit.
+   - scrolling=\"yes\" on the element encourages both scrollbars.
+*/
+.content-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* Small-height screens: keep usability */
+@media (max-height: 600px) {
+  .frame-wrap {
+    height: 480px;
+  }
+}
